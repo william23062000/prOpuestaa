@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>¿Puedo ser tu novio?</title>
+<style>
+  /* Reset */
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  html, body {
+    height: 100%;
+    background: linear-gradient(135deg, #FFB6C1, #FFC0CB);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #4B004B;
+    overflow: hidden;
+    user-select: none;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    max-width: 350px;
+    margin: auto;
+  }
+  h1 {
+    font-size: 2.4rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 2px 4px rgba(255 255 255 / 0.7);
+    user-select: none;
+  }
+  #buttons {
+    display: flex;
+    gap: 1.2rem;
+    width: 100%;
+    justify-content: center;
+  }
+  button {
+    border: none;
+    border-radius: 12px;
+    padding: 0.9rem 1.6rem;
+    font-size: 1.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    outline-offset: 3px;
+    box-shadow: 0 8px 20px rgba(204, 102, 153, 0.4);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    color: white;
+    flex-shrink: 0;
+    min-width: 100px;
+    max-width: 45%;
+    transform-origin: center;
+  }
+  button#no {
+    background: #95106d;
+  }
+  button#si {
+    background: #ff4d94;
+  }
+  #phrase-container {
+    margin-top: 3rem;
+    height: 2.5rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #3a004a;
+    min-height: 2.5rem;
+    text-align: center;
+    user-select: none;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+  }
+  /* Hearts container */
+  #hearts-container {
+    position: fixed;
+    pointer-events: none;
+    top: 0;
+    left: 50%;
+    width: 100vw;
+    height: 600px;
+    max-height: 600px;
+    overflow: visible;
+    transform: translateX(-50%);
+    z-index: 1000;
+  }
+  .heart {
+    position: absolute;
+    color: #ff4d94;
+    font-size: 16px;
+    user-select: none;
+    opacity: 1;
+    animation-name: floatDown;
+    animation-duration: 6s;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+  @keyframes floatDown {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    40% {
+      opacity: 0.75;
+    }
+    80% {
+      opacity: 0.3;
+    }
+    100% {
+      transform: translateY(600px) scale(1.3);
+      opacity: 0;
+    }
+  }
+</style>
+</head>
+<body>
+  <div id="hearts-container" aria-hidden="true"></div>
+  <h1>¿Puedo ser tu novio?</h1>
+  <div id="buttons" role="group" aria-label="Opciones de respuesta">
+    <button id="si" aria-label="Sí, quiero ser tu novio" type="button">Sí</button>
+    <button id="no" aria-label="No, no quiero ser tu novio" type="button">No</button>
+  </div>
+  <div id="phrase-container" aria-live="polite" aria-atomic="true"></div>
+<script>
+  const heartsContainer = document.getElementById('hearts-container');
+  const siButton = document.getElementById('si');
+  const noButton = document.getElementById('no');
+  const phraseContainer = document.getElementById('phrase-container');
+
+  // Phrases to show on "No" presses
+  const phrases = [
+    "¿Estás segura? ¡Piensa en nosotros!",
+    "Prometo hacerte muy feliz.",
+    "Un 'sí' podría ser el comienzo de algo hermoso.",
+    "No hay nadie más para mí que tú.",
+    "¡Dame una oportunidad, por favor!",
+    "Puedo sorprenderte cada día.",
+    "Estoy aquí para ti siempre.",
+    "Juntos podemos ser invencibles.",
+    "No digas 'no' antes de conocerme mejor.",
+    "¿Y si el destino está a nuestro favor?"
+  ];
+  let phraseIndex = 0;
+  let phraseTimeout = null;
+
+  // Scale states
+  let siScale = 1;
+  let noScale = 1;
+
+  // Limits for scaling
+  const noMinScale = 0.4; // minimum No button scale
+  // Si grows indefinitely, no max limit necessary, but set an arbitray large limit for safety
+  const siMaxScale = 100;
+
+  // Create heart element with random position and size
+  function createHeart(size = null) {
+    const heart = document.createElement('div');
+    heart.classList.add('heart');
+    heart.textContent = '❤️';
+    heart.style.left = Math.random() * 100 + 'vw';
+    heart.style.fontSize = (size !== null) ? size + 'px' : (12 + Math.random() * 24) + 'px';
+    heart.style.animationDuration = (5 + Math.random() * 3) + 's';
+    heartsContainer.appendChild(heart);
+    setTimeout(() => {
+      if(heart.parentNode === heartsContainer) {
+        heartsContainer.removeChild(heart);
+      }
+    }, parseFloat(heart.style.animationDuration) * 1000);
+  }
+
+  // Continuous hearts from top falling
+  setInterval(() => {
+    createHeart();
+  }, 300);
+
+  // Burst hearts on Si press
+  function createManyHearts(count) {
+    for(let i=0; i<count; i++) {
+      setTimeout(() => createHeart(30 + Math.random() * 30), i * 100);
+    }
+  }
+
+  // Handle Si button click -- only needed if the user pressed "No", we grow Si on No clicks only
+  // But to provide feedback on Si clicks, burst hearts and no phrase
+  siButton.addEventListener('click', () => {
+    // Remove phrases
+    if(phraseTimeout) clearTimeout(phraseTimeout);
+    phraseContainer.style.opacity = 0;
+    phraseTimeout = setTimeout(() => {
+      phraseContainer.textContent = '';
+      phraseContainer.style.opacity = 1;
+    }, 500);
+
+    // Burst hearts celebration
+    createManyHearts(30);
+  });
+
+  // Handle No button click -- Shrink No, Grow Si, show phrases
+  noButton.addEventListener('click', () => {
+    // Show one phrase at a time with fade effect
+    if(phraseTimeout) clearTimeout(phraseTimeout);
+    phraseContainer.style.opacity = 0;
+    phraseTimeout = setTimeout(() => {
+      phraseContainer.textContent = phrases[phraseIndex];
+      phraseContainer.style.opacity = 1;
+      phraseIndex++;
+      if(phraseIndex >= phrases.length) phraseIndex = 0;
+    }, 500);
+
+    // Shrink No button
+    noScale -= 0.1;
+    if(noScale < noMinScale) noScale = noMinScale;
+    noButton.style.transform = `scale(${noScale})`;
+
+    // Grow Si button
+    siScale += 0.3;
+    if(siScale > siMaxScale) siScale = siMaxScale;
+    siButton.style.transform = `scale(${siScale})`;
+  });
+
+  // Accessibility: activate buttons with keyboard keys
+  [siButton, noButton].forEach(button => {
+    button.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        button.click();
+      }
+    });
+  });
+</script>
+</body>
+</html>
+
